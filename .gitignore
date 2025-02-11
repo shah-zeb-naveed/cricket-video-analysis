@@ -2,3 +2,23 @@
 *.jpeg
 *.mp4
 *.png
+*.pt
+*.dat
+*.mp3
+*.wav
+*.avi
+*.mkv
+*.flv
+*.wmv
+*.webm
+*.m4a
+*.m4v
+*.mov
+*.mpg
+*.mpeg
+*.m4b
+*.m4p
+*.m4b
+# python cache 
+__pycache__ 
+*.vscode
