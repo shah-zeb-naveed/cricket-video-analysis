@@ -3,7 +3,7 @@ import os
 from ultralytics import YOLO
 import cv2
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
 
 def merge_clips(input_folder, output_video):
     # remove existing output video
@@ -109,28 +109,29 @@ def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_durat
     # has_audio = os.system(probe_cmd) == 0
     # print(f"Video has audio: {has_audio}")
 
-    for i, frame_number in enumerate(frames):
-        # If frame_3000.jpg was saved, it means it was the 3000th frame seen
-        # So we need to use that exact frame number
-        start_time = (frame_number - 1) / 25#fps
-        print(f"Frame number: {frame_number}")
-        print(f"Start time: {start_time//60} minutes {start_time%60} seconds")
+    with tqdm(total=len(frames), desc="Processing frames") as pbar:
+        for i, frame_number in tqdm(enumerate(frames)):
+            # If frame_3000.jpg was saved, it means it was the 3000th frame seen
+            # So we need to use that exact frame number
+            start_time = (frame_number - 1) / 25#fps
+            #print(f"Frame number: {frame_number}")
+            #print(f"Start time: {start_time//60} minutes {start_time%60} seconds")
 
-        output_path = f"{output_folder}/clip_{i}.mp4"
-        
-        print(f"Processing frame {frame_number} -> start time {start_time:.2f}s")
-        
+            output_path = f"{output_folder}/clip_{i}.mp4"
+            
+            #print(f"Processing frame {frame_number} -> start time {start_time:.2f}s")
+            
 
-        # subtract 5 seconds from start time
-        start_time -= subtract_seconds_from_start
+            # subtract 5 seconds from start time
+            start_time -= subtract_seconds_from_start
 
-        # Seek to exact frame for more precise extraction
-        #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
-        cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -c:a aac -preset fast "{output_path}" -loglevel quiet'
+            # Seek to exact frame for more precise extraction
+            #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
+            cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -c:a aac -preset fast "{output_path}" -loglevel quiet'
 
-        print(f"Executing command: {cmd}")
-        os.system(cmd)
-
+            #print(f"Executing command: {cmd}")
+            os.system(cmd)
+            pbar.update(1)
     cap.release()
     print(f"Extracted clips saved in {output_folder}")
 
@@ -171,13 +172,17 @@ if __name__ == "__main__":
                   clip_duration=clip_duration, 
                   output_folder=output_folder
     )
-    # python clip_extractor.py trimmed.mp4 "[10780, 13935, 13940, 13945, 17605, 3710, 6175]" 17 5 100
+    # python clip_extractor.py "Practice_#11_yasshi_sports_pt:1.mp4" "[18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]" 13 4 200 p1.mp4
 
     # part 1
     # [18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]
 
     # part 2
-    # [3650, 3675, 4550, 6125, 6150, 10750, 13875, 13900, 17550, 17575, 17600, 18600, 21400, 21425, 24625, 83125, 98250]
+    # python clip_extractor.py "Practice_#11_Pt:2_yashi_sports.mp4" "[3650, 3675, 4550, 6125, 6150, 10750, 13875, 13900, 17550, 17575, 17600, 18600, 21400, 21425, 24625, 83125, 98250]" 13 4 200 p2.mp4
+
 
     merge_clips(output_folder, out_video)
+
+    # merge videos
+    # ffmpeg -i p1.mp4 -i p2.mp4 -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 192k -shortest final.mp4
 
