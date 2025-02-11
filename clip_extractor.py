@@ -178,11 +178,11 @@ if __name__ == "__main__":
     # [18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]
 
     # part 2
-    # python clip_extractor.py "Practice_#11_Pt:2_yashi_sports.mp4" "[3650, 3675, 4550, 6125, 6150, 10750, 13875, 13900, 17550, 17575, 17600, 18600, 21400, 21425, 24625, 83125, 98250]" 13 4 200 p2.mp4
+    # python clip_extractor.py "Practice_#11_Pt:2_yashi_sports.mp4" "[3650, 3675, 4550, 6125, 6150, 10750, 13875, 13900, 17550, 17575, 17600, 18600, 21400, 21425, 24625, 83125, 98250]" 16 7 200 p2.mp4
 
 
     merge_clips(output_folder, out_video)
 
     # merge videos
-    # ffmpeg -i p1.mp4 -i p2.mp4 -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 192k -shortest final.mp4
+    # ffmpeg -i p1.mp4 -i p2.mp4 -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" output.mp4
 
