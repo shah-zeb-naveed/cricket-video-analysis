@@ -27,6 +27,12 @@ def contains_face(frame, detector, width=2500):
     return len(detected_faces) > 0
 
 def extract_frames(video_path, output_folder, frame_interval=25):
+
+    # remove all files in the output folder
+    if os.path.exists(output_folder):
+        for file in os.listdir(output_folder):
+            os.remove(os.path.join(output_folder, file))
+            
     os.makedirs(output_folder, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -62,23 +68,23 @@ def extract_frames(video_path, output_folder, frame_interval=25):
 
             
             if not contains_face(frame, detector):
-                if num_players > 1 and cur_start_frame_number is None:
-                    print('Start of clip:', frame_count)
-                    cur_start_frame_number = frame_count
-                    cur_start_frame = frame
+                # if num_players > 1 and cur_start_frame_number is None:
+                #     print('Start of clip:', frame_count)
+                #     cur_start_frame_number = frame_count
+                #     cur_start_frame = frame
                 continue
 
             print('Found face in frame: ', frame_count)
             
-            if cur_start_frame is not None:
-                frame_path = os.path.join(output_folder, f"frame_{cur_start_frame_number}_{frame_count}.jpg")
-                cv2.imwrite(frame_path, frame)
+            # if cur_start_frame is not None:
+            frame_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
+            cv2.imwrite(frame_path, frame)
 
-                frame_path = os.path.join(output_folder, f"frame_{cur_start_frame_number}.jpg")
-                cv2.imwrite(frame_path, cur_start_frame)
+            #     frame_path = os.path.join(output_folder, f"frame_{cur_start_frame_number}.jpg")
+            #     cv2.imwrite(frame_path, cur_start_frame)
 
-            cur_start_frame_number = None
-            cur_start_frame = None
+            # cur_start_frame_number = None
+            # cur_start_frame = None
 # process last frame
     try:
         if contains_face(prev_frame, detector):
@@ -94,10 +100,5 @@ if __name__ == "__main__":
     import sys
     video_path = sys.argv[1]
     output_folder = sys.argv[2]
-
-    # remove all files in the output folder
-    if os.path.exists(output_folder):
-        for file in os.listdir(output_folder):
-            os.remove(os.path.join(output_folder, file))
 
     extract_frames(video_path, output_folder)

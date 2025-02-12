@@ -87,7 +87,23 @@ def find_clip_start(video_path, start_frame):
     return 0, 0  # If no change found, return start of video
 
 
-def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
+def filter_frames(matched_frames, skip_frames):
+    filtered_frames = []
+    i = len(matched_frames) - 1
+    while i >= 0:
+        current = matched_frames[i]
+        filtered_frames.append(current)
+        while i > 0 and current - matched_frames[i-1] <= skip_frames:
+            i -= 1
+        i -= 1
+    filtered_frames.reverse()
+    return filtered_frames
+
+
+def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
+
+    frames = filter_frames(frames, skip_frames)
+
     # Delete existing folder contents if folder exists
     if os.path.exists(output_folder):
         for file in os.listdir(output_folder):
@@ -124,6 +140,7 @@ def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_durat
 
             # subtract 5 seconds from start time
             start_time -= subtract_seconds_from_start
+            start_time = max(0, start_time)
 
             # Seek to exact frame for more precise extraction
             #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
@@ -142,32 +159,13 @@ if __name__ == "__main__":
     subtract_seconds_from_start = int(sys.argv[3])
     clip_duration = int(sys.argv[4])
     skip_frames = int(sys.argv[5]) # 10
-    out_video = sys.argv[6] # 10
+    out_video = sys.argv[6] # 10    
     output_folder = 'clips/'
 
 
-    #frames.sort()
-    print('Frames: ', frames)
-    # sort frame numbers and remove duplicates (duplicates means any frame that appears 
-    # within 10 frames of each other) such that we retain the last occurrence
-
-    filtered_frames = []
-    i = len(frames) - 1
-    while i >= 0:
-        current = frames[i]
-        # Add the current frame
-        filtered_frames.append(current)
-        # Skip all frames that are within 10 frames before the current one
-        while i > 0 and current - frames[i-1] <= skip_frames:
-            i -= 1
-        i -= 1
-
-
-    filtered_frames.reverse()
-    print('Filtered frames: ', filtered_frames)
-
     extract_clips(video_path, 
-                  filtered_frames, 
+                  frames, 
+                  skip_frames=skip_frames,
                   subtract_seconds_from_start=subtract_seconds_from_start, 
                   clip_duration=clip_duration, 
                   output_folder=output_folder
