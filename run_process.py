@@ -80,7 +80,7 @@ def run_pipeline(youtube_urls, reference_image_path, output_video_path):
             filter_parts.append(f"[{i}:v][{i}:a]")
         filter_complex = f"{' '.join(filter_parts)}concat=n={len(part_videos)}:v=1:a=1[outv][outa]"
         
-        cmd = f'ffmpeg {inputs} -filter_complex "{filter_complex}" -map "[outv]" -map "[outa]" {output_video_path}'
+        cmd = f'ffmpeg {inputs} -filter_complex "{filter_complex}" -map "[outv]" -map "[outa]" {output_video_path} -loglevel quiet'
         os.system(cmd)
         
         # # Clean up part videos

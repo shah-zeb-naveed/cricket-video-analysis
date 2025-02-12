@@ -46,7 +46,7 @@ def download_video(url, save_path="."):
         print("Merging video and audio using FFmpeg...")
 
         # Correctly use ffmpeg with file paths
-        cmd = f'ffmpeg -i "{video_filename}" -i "{audio_filename}" -c:v copy -c:a aac "{output_filename}"'
+        cmd = f'ffmpeg -i "{video_filename}" -i "{audio_filename}" -c:v copy -c:a aac "{output_filename}" -loglevel quiet'
         os.system(cmd)
 
         print(f"Download complete! Merged file saved as: {output_filename}")

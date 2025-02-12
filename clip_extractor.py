@@ -16,7 +16,7 @@ def merge_clips(input_folder, output_video):
         for clip in clip_files:
             f.write(f"file '{clip}'\n")
 
-    cmd = "ffmpeg -f concat -safe 0 -i file_list.txt -c copy " + output_video
+    cmd = "ffmpeg -f concat -safe 0 -i file_list.txt -c copy " + output_video + " -loglevel quiet"
     os.system(cmd)
     os.remove("file_list.txt")
 
@@ -97,6 +97,7 @@ def filter_frames(matched_frames, skip_frames):
             i -= 1
         i -= 1
     filtered_frames.reverse()
+    print('Filtered frames: ', filtered_frames)
     return filtered_frames
 
 
