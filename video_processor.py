@@ -41,8 +41,17 @@ def filter_frames(matched_frames, skip_frames):
     return filtered_frames
 
 
-def extract_frames(video_path, output_folder, frame_interval=25):
+def process_batch(batch, output_folder):
+    detector = dlib.get_frontal_face_detector()
+    #results = []
+    for frame_number, frame in batch:
+        if contains_face(frame, detector):
+            #results.append((frame_number, frame))
+            frame_path = os.path.join(output_folder, f"frame_{frame_number}.jpg")
+            cv2.imwrite(frame_path, frame)
+    return 1
 
+def extract_frames(video_path, output_folder, frame_interval=25):
     # remove all files in the output folder
     if os.path.exists(output_folder):
         for file in os.listdir(output_folder):
@@ -50,65 +59,51 @@ def extract_frames(video_path, output_folder, frame_interval=25):
 
     os.makedirs(output_folder, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    #print(f"Video FPS: {fps}")
-    frame_count = 0
-
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print('Total frames: ', total_frames)
     print("Extracting frames...")
 
-    detector = dlib.get_frontal_face_detector()
+    # Create batches of frames
+    batch_size = 32  # Adjust this based on your system's capabilities
+    current_batch = []
+    frame_count = 0
     
-#    with tqdm(total=total_frames, desc="Processing frames") as pbar:
-    prev_frame = None
-    cur_start_frame_number = None
-    cur_start_frame = None
-
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        
-        frame_count += 1
-        #pbar.update(1)
-
-        if not ret:
-            print('End of video')
-            break
-
-        prev_frame = frame
-        
-        if frame_count % frame_interval == 0:
-            #num_players = detect_players(frame)
-
+    # Number of processes to use (typically number of CPU cores)
+    num_processes = multiprocessing.cpu_count()
+    
+    all_results = []
+    
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            frame_count += 1
             
-            if not contains_face(frame, detector):
-                # if num_players > 1 and cur_start_frame_number is None:
-                #     print('Start of clip:', frame_count)
-                #     cur_start_frame_number = frame_count
-                #     cur_start_frame = frame
-                continue
-
-            #print('Found face in frame: ', frame_count)
-            
-            # if cur_start_frame is not None:
-            frame_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
-            cv2.imwrite(frame_path, frame)
-
-            #     frame_path = os.path.join(output_folder, f"frame_{cur_start_frame_number}.jpg")
-            #     cv2.imwrite(frame_path, cur_start_frame)
-
-            # cur_start_frame_number = None
-            # cur_start_frame = None
-# process last frame
-    try:
-        if contains_face(prev_frame, detector):
-            frame_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
-            cv2.imwrite(frame_path, frame)
-    except Exception as e:
-        print(f"Error processing last frame: {e}")
+            if not ret:
+                print('End of video')
+                break
+                
+            if frame_count % frame_interval == 0:
+                current_batch.append((frame_count, frame))
+                
+                # Process batch when it reaches batch_size
+                if len(current_batch) >= batch_size:
+                    # Submit batch for processing
+                    future = executor.submit(process_batch, current_batch, output_folder)
+                    #all_results.extend(future.result())
+                    current_batch = []
+        
+        # Process remaining frames in the last batch
+        if current_batch:
+            future = executor.submit(process_batch, current_batch, output_folder)
+            #all_results.extend(future.result())
 
     cap.release()
+
+    # # Save the frames that contain faces
+    # for frame_number, frame in all_results:
+    #     frame_path = os.path.join(output_folder, f"frame_{frame_number}.jpg")
+    #     cv2.imwrite(frame_path, frame)
+
     print(f"Extracted frames saved in {output_folder}")
 
     print('Filtering frames...')
