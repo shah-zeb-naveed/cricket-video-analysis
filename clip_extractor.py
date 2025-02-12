@@ -103,7 +103,6 @@ def filter_frames(matched_frames, skip_frames):
 
 def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
 
-    frames = filter_frames(frames, skip_frames)
 
     # Delete existing folder contents if folder exists
     if os.path.exists(output_folder):

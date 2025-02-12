@@ -26,13 +26,28 @@ def contains_face(frame, detector, width=2500):
         
     return len(detected_faces) > 0
 
+
+def filter_frames(matched_frames, skip_frames):
+    filtered_frames = []
+    i = len(matched_frames) - 1
+    while i >= 0:
+        current = matched_frames[i]
+        filtered_frames.append(current)
+        while i > 0 and current - matched_frames[i-1] <= skip_frames:
+            i -= 1
+        i -= 1
+    filtered_frames.reverse()
+    print('Filtered frames: ', filtered_frames)
+    return filtered_frames
+
+
 def extract_frames(video_path, output_folder, frame_interval=25):
 
     # remove all files in the output folder
     if os.path.exists(output_folder):
         for file in os.listdir(output_folder):
             os.remove(os.path.join(output_folder, file))
-            
+
     os.makedirs(output_folder, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -64,7 +79,7 @@ def extract_frames(video_path, output_folder, frame_interval=25):
         prev_frame = frame
         
         if frame_count % frame_interval == 0:
-            num_players = detect_players(frame)
+            #num_players = detect_players(frame)
 
             
             if not contains_face(frame, detector):
@@ -74,7 +89,7 @@ def extract_frames(video_path, output_folder, frame_interval=25):
                 #     cur_start_frame = frame
                 continue
 
-            print('Found face in frame: ', frame_count)
+            #print('Found face in frame: ', frame_count)
             
             # if cur_start_frame is not None:
             frame_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
@@ -96,9 +111,28 @@ def extract_frames(video_path, output_folder, frame_interval=25):
     cap.release()
     print(f"Extracted frames saved in {output_folder}")
 
+    print('Filtering frames...')
+    # read all frames in the output folder and return a list of frame numbers
+    frames = []
+    for file in os.listdir(output_folder):
+        if file.endswith(".jpg"):
+            frames.append(int(file.split("_")[1].split(".")[0]))
+    
+    frames = filter_frames(frames, skip_frames)
+    frames = set(frames)
+
+    # only retain these frames in the output folder
+    for file in os.listdir(output_folder):
+        if file.endswith(".jpg"):
+            if int(file.split("_")[1].split(".")[0]) not in frames:
+                os.remove(os.path.join(output_folder, file))
+
+    return frames
+
 if __name__ == "__main__":
     import sys
     video_path = sys.argv[1]
     output_folder = sys.argv[2]
+    skip_frames = int(sys.argv[3])
 
-    extract_frames(video_path, output_folder)
+    extract_frames(video_path, output_folder, skip_frames)
