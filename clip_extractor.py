@@ -120,7 +120,9 @@ def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_sta
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     
     print(f"Video FPS: {fps}")
-    
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print('Total frames: ', total_frames)
+
     # probe_cmd = f'ffprobe -i "{video_path}" -show_streams -select_streams a -loglevel error'
     # has_audio = os.system(probe_cmd) == 0
     # print(f"Video has audio: {has_audio}")
@@ -129,7 +131,7 @@ def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_sta
         for i, frame_number in tqdm(enumerate(frames)):
             # If frame_3000.jpg was saved, it means it was the 3000th frame seen
             # So we need to use that exact frame number
-            start_time = (frame_number - 1) / 25#fps
+            start_time = (frame_number - 1) / fps
             #print(f"Frame number: {frame_number}")
             #print(f"Start time: {start_time//60} minutes {start_time%60} seconds")
 
@@ -141,6 +143,7 @@ def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_sta
             # subtract 5 seconds from start time
             start_time -= subtract_seconds_from_start
             start_time = max(0, start_time)
+            #print('\nStart time: ', start_time)
 
             # Seek to exact frame for more precise extraction
             #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
@@ -170,7 +173,7 @@ if __name__ == "__main__":
                   clip_duration=clip_duration, 
                   output_folder=output_folder
     )
-    # python clip_extractor.py "Practice_#11_yasshi_sports_pt:1.mp4" "[18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]" 13 4 200 p1.mp4
+    # python clip_extractor.py "trimmed_10_1.mp4" "[4750, 7100, 8650, 11325, 12025, 14325, 25100]" 16 7 200 ptemp.mp4
 
     # part 1
     # [18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]

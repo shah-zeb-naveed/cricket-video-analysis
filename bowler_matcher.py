@@ -4,6 +4,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from video_processor import filter_frames
+
 def crop_to_face_and_save(face_ref, reference_img):
     # Extract the face region from the reference image
     x, y, w, h = face_ref.left(), face_ref.top(), face_ref.width(), face_ref.height()
@@ -56,8 +58,8 @@ def match_bowler(reference_image_path, frames_folder, match_threshold=0.45):
 
     matched_frames = []
     distances = []
-    
-    # Iterate through frames in the folder
+
+
     for frame_file in sorted(os.listdir(frames_folder)):
         frame_path = os.path.join(frames_folder, frame_file)
         frame = cv2.imread(frame_path)
@@ -101,6 +103,7 @@ def match_bowler(reference_image_path, frames_folder, match_threshold=0.45):
     plt.title(f'Distance Distribution\nAvg: {np.mean(distances):.3f}, Med: {np.median(distances):.3f}\nMin: {np.min(distances):.3f}, Max: {np.max(distances):.3f}')
     matched_frames.sort()
     return matched_frames
+
 
 if __name__ == "__main__":
     import sys
