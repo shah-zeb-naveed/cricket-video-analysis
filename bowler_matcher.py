@@ -24,7 +24,7 @@ def preprocess_frame(frame, width=2500):
     return frame
 
 
-def match_bowler(reference_image_path, frames_folder, match_threshold=0.45):
+def match_bowler(reference_image_path, frames_folder, match_threshold=0.50):
 
     # Initialize face detector and face recognition model
     detector = dlib.get_frontal_face_detector()
@@ -112,5 +112,9 @@ if __name__ == "__main__":
 
     matched_frames = match_bowler(reference_image_path, frames_folder)
     print(matched_frames)  # Print indices where the bowler appears
+
+    # log matched_frames to a file
+    with open('matched_frames.txt', 'w') as f:
+        f.write(str(matched_frames))
 
     # [10780, 13935, 13940, 13945, 17605, 3710, 6175]

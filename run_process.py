@@ -6,11 +6,11 @@ from bowler_matcher import match_bowler
 from clip_extractor import extract_clips, merge_clips
 from pytubefix import YouTube
 import re
-
+from upload_to_drive import upload_to_drive
 
 # Default parameters for clip extraction
 subtract_seconds = 16
-clip_duration = 7
+clip_duration = 10
 skip_frames = 200
 
 
@@ -42,9 +42,11 @@ def process_single_video(youtube_url, reference_image_path, part_num):
     print("\n3. Matching bowler...")
     matched_frames = match_bowler(reference_image_path, frames_dir)
     print(f"Matched frames: {matched_frames}")
-    if not matched_frames:
-        raise Exception(f"No matching frames found for the bowler in part {part_num}")
+
     print(f"Found {len(matched_frames)} matching frames")
+
+    if not matched_frames:
+        return None
     
     print("\n4. Extracting clips...")
     clips_dir = f"clips_{part_num}"
@@ -70,7 +72,8 @@ def run_pipeline(youtube_urls, reference_image_path, output_video_path):
         # Process each video URL
         for i, url in enumerate(youtube_urls, 1):
             part_video = process_single_video(url, reference_image_path, i)
-            part_videos.append(part_video)
+            if part_video:
+                part_videos.append(part_video)
         
         print("\nMerging all parts...")
         # Construct ffmpeg command for merging all parts
@@ -89,6 +92,10 @@ def run_pipeline(youtube_urls, reference_image_path, output_video_path):
         #         os.remove(video)
         
         print(f"\nPipeline completed successfully! Final output video saved to: {output_video_path}")
+
+        upload_to_drive(output_video_path)
+
+
         
     except Exception as e:
         print(f"Error in pipeline: {str(e)}")

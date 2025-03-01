@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import numpy as np
 from tqdm import tqdm
 
-from clip_extractor import detect_players
+from clip_extractor import get_fps_ffmpeg
 
 
 def preprocess_frame(frame, width=2500):
@@ -52,6 +52,12 @@ def extract_frames(video_path, output_folder, skip_frames=200, frame_interval=25
     os.makedirs(output_folder, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+    fps_ffmpeg = get_fps_ffmpeg(video_path)
+
+    if fps != fps_ffmpeg:
+        raise ValueError(f"FPS mismatch: {fps} != {fps_ffmpeg}")
+    
     print(f"Video FPS: {fps}")
     frame_count = 0
 

@@ -4,6 +4,17 @@ from ultralytics import YOLO
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import subprocess
+
+def get_fps_ffmpeg(video_path):
+    cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', 
+           '-show_entries', 'stream=r_frame_rate', '-of', 
+           'default=noprint_wrappers=1:nokey=1', video_path]
+    
+    output = subprocess.check_output(cmd).decode('utf-8').strip().split('/')
+    fps = int(output[0]) / int(output[1])
+    return int(fps)
+
 
 def merge_clips(input_folder, output_video):
     # remove existing output video
@@ -19,8 +30,6 @@ def merge_clips(input_folder, output_video):
     cmd = "ffmpeg -f concat -safe 0 -i file_list.txt -c copy " + output_video + " -loglevel quiet"
     os.system(cmd)
     os.remove("file_list.txt")
-
-
 
 
 # Load YOLOv8 model trained on COCO (detects people, cricket bats, etc.)
@@ -101,8 +110,10 @@ def filter_frames(matched_frames, skip_frames):
     return filtered_frames
 
 
-def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
+def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
 
+    if not frames:
+        return
 
     # Delete existing folder contents if folder exists
     if os.path.exists(output_folder):
@@ -118,6 +129,11 @@ def extract_clips(video_path, frames, skip_frames=200, subtract_seconds_from_sta
 
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+    fps_ffmpeg = get_fps_ffmpeg(video_path)
+
+    if fps != fps_ffmpeg:
+        raise ValueError(f"FPS mismatch: {fps} != {fps_ffmpeg}")
     
     print(f"Video FPS: {fps}")
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -160,28 +176,19 @@ if __name__ == "__main__":
     video_path = sys.argv[1]
     frames = list(map(int, sys.argv[2].strip('[]').split(',')))
     subtract_seconds_from_start = int(sys.argv[3])
-    clip_duration = int(sys.argv[4])
-    skip_frames = int(sys.argv[5]) # 10
-    out_video = sys.argv[6] # 10    
+    clip_duration = int(sys.argv[4]) # 10
+    #skip_frames = int(sys.argv[5]) # 200
+    out_video = sys.argv[5] # 10    
     output_folder = 'clips/'
 
 
     extract_clips(video_path, 
                   frames, 
-                  skip_frames=skip_frames,
                   subtract_seconds_from_start=subtract_seconds_from_start, 
                   clip_duration=clip_duration, 
                   output_folder=output_folder
     )
-    # python clip_extractor.py "trimmed_10_1.mp4" "[4750, 7100, 8650, 11325, 12025, 14325, 25100]" 16 7 200 ptemp.mp4
-
-    # part 1
-    # [18400, 20325, 20350, 22775, 22800, 27525, 29700, 29725, 32025, 32050, 35075, 37325, 37350, 40700, 40725, 43575, 43600, 43650, 46675, 49400, 53000, 53025, 55175, 55200, 57275, 59525, 62000, 62275, 67325, 67350, 71150, 71175, 71200, 77225, 77250]
-
-    # part 2
-    # python clip_extractor.py "Practice_#11_Pt:2_yashi_sports.mp4" "[3650, 3675, 4550, 6125, 6150, 10750, 13875, 13900, 17550, 17575, 17600, 18600, 21400, 21425, 24625, 83125, 98250]" 16 7 200 p2.mp4
-
-
+    
     merge_clips(output_folder, out_video)
 
     # merge videos
