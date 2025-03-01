@@ -1,5 +1,6 @@
 import azure.functions as func
 import logging
+from run_process import run_pipeline
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -7,19 +8,25 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
-    name = req.params.get('name')
-    if not name:
+    youtube_url = req.params.get('youtube_url')
+    reference_image_path = req.params.get('reference_image_path')
+    output_video_path = req.params.get('output_video_path')
+    
+    if not youtube_url:
         try:
             req_body = req.get_json()
         except ValueError:
             pass
         else:
-            name = req_body.get('name')
-
-    if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP triggered function executed successfully.")
+            youtube_url = req_body.get('youtube_url')
+            reference_image_path = req_body.get('reference_image_path')
+            output_video_path = req_body.get('output_video_path')
+                        
+    if output_video_path:
+        run_pipeline([youtube_url], reference_image_path, output_video_path)
+        return func.HttpResponse(f"Hello, {output_video_path}. This HTTP triggered function executed successfully.")
     else:
         return func.HttpResponse(
-             "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
+             "This HTTP triggered function executed successfully but no parameters were specified.",
              status_code=200
         )
