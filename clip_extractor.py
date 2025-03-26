@@ -2,9 +2,12 @@ import cv2
 import os 
 from ultralytics import YOLO
 import cv2
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import subprocess
+import librosa
+import librosa.display
+
+from audio_utils import merge_times, get_release_times, read_list_from_file, write_list_to_file, pair_bowler_faces_with_batting
 
 def get_fps_ffmpeg(video_path):
     cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', 
@@ -109,10 +112,17 @@ def filter_frames(matched_frames, skip_frames):
     print('Filtered frames: ', filtered_frames)
     return filtered_frames
 
+def extract_clip(start_time, clip_duration, video_path, output_path):
+    # Seek to exact frame for more precise extraction
+    #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
+    cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -c:a aac -preset fast "{output_path}" -loglevel quiet'
 
-def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_duration=10, output_folder="clips"):
+    #print(f"Executing command: {cmd}")
+    os.system(cmd)
 
-    if not frames:
+def extract_clips(video_path, start_pairs, subtract_seconds_from_shot=25, clip_duration=10, output_folder="clips"):
+
+    if not start_pairs:
         return
 
     # Delete existing folder contents if folder exists
@@ -127,6 +137,27 @@ def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_durat
     
     os.makedirs(output_folder, exist_ok=True)
 
+
+    with tqdm(total=len(start_pairs), desc="Processing frames") as pbar:
+        #for i, frame_number in tqdm(enumerate(frames)):
+        for i, (_, shot_sec) in tqdm(enumerate(start_pairs.items())):
+            output_path = f"{output_folder}/clip_{i}.mp4"
+
+
+            # subtract offset from bat shot
+            start_time = shot_sec - subtract_seconds_from_shot
+            start_time = max(0, start_time)
+            
+            extract_clip(start_time, clip_duration, video_path, output_path)
+            pbar.update(1)
+
+    #cap.release()
+    print(f"Extracted clips saved in {output_folder}")
+
+def get_start_pairs(video_path, frames):
+    #peak_data_file = 'peak_data.txt'
+    
+    # check fps
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
 
@@ -139,52 +170,42 @@ def extract_clips(video_path, frames, subtract_seconds_from_start=25, clip_durat
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print('Total frames: ', total_frames)
 
-    # probe_cmd = f'ffprobe -i "{video_path}" -show_streams -select_streams a -loglevel error'
-    # has_audio = os.system(probe_cmd) == 0
-    # print(f"Video has audio: {has_audio}")
+    # video frame to second dict
+    frames_seconds = [(frame_number - 1) / fps for frame_number in frames]
 
-    with tqdm(total=len(frames), desc="Processing frames") as pbar:
-        for i, frame_number in tqdm(enumerate(frames)):
-            # If frame_3000.jpg was saved, it means it was the 3000th frame seen
-            # So we need to use that exact frame number
-            start_time = (frame_number - 1) / fps
-            #print(f"Frame number: {frame_number}")
-            #print(f"Start time: {start_time//60} minutes {start_time%60} seconds")
+    # save wav mono channel
+    cmd = "ffmpeg -i input.mp4 -q:a 0 -map a output.wav -loglevel quiet"
+    os.system(cmd)
 
-            output_path = f"{output_folder}/clip_{i}.mp4"
-            
-            #print(f"Processing frame {frame_number} -> start time {start_time:.2f}s")
-            
+    cmd = "ffmpeg -i output.wav -ac 1 output_mono.wav -loglevel quiet"
+    os.system(cmd)
 
-            # subtract 5 seconds from start time
-            start_time -= subtract_seconds_from_start
-            start_time = max(0, start_time)
-            #print('\nStart time: ', start_time)
-
-            # Seek to exact frame for more precise extraction
-            #cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -preset fast "{output_path}" -loglevel quiet'
-            cmd = f'ffmpeg -ss {start_time:.3f} -i "{video_path}" -t {clip_duration} -c:v libx264 -c:a aac -preset fast "{output_path}" -loglevel quiet'
-
-            #print(f"Executing command: {cmd}")
-            os.system(cmd)
-            pbar.update(1)
-    cap.release()
-    print(f"Extracted clips saved in {output_folder}")
-
+    # analyze audio
+    y, sr = librosa.load('output_mono.wav', sr=None)
+    release_times = merge_times(get_release_times(y, sr, percentile=99.50))
+    #write_list_to_file(peak_data_file, release_times)
+    #peaks = read_list_from_file(peak_data_file)
+    print(release_times, 'release times')
+    print(frames_seconds, 'frame secs')
+    start_pairs = pair_bowler_faces_with_batting(release_times, frames_seconds)
+    return start_pairs
+    
 if __name__ == "__main__":
     import sys
     video_path = sys.argv[1]
     frames = list(map(int, sys.argv[2].strip('[]').split(',')))
-    subtract_seconds_from_start = int(sys.argv[3])
+    subtract_seconds_from_shot = int(sys.argv[3])
     clip_duration = int(sys.argv[4]) # 10
-    #skip_frames = int(sys.argv[5]) # 200
-    out_video = sys.argv[5] # 10    
+    out_video = sys.argv[5] # 10  
     output_folder = 'clips/'
 
 
+
+    start_pairs = get_start_pairs(video_path, frames)
+    print(start_pairs)
     extract_clips(video_path, 
-                  frames, 
-                  subtract_seconds_from_start=subtract_seconds_from_start, 
+                  start_pairs,
+                  subtract_seconds_from_shot=subtract_seconds_from_shot, 
                   clip_duration=clip_duration, 
                   output_folder=output_folder
     )

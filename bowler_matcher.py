@@ -24,7 +24,7 @@ def preprocess_frame(frame, width=2500):
     return frame
 
 
-def match_bowler(reference_image_path, frames_folder, match_threshold=0.50):
+def match_bowler(reference_image_path, frames_folder, match_threshold=0.55):
 
     # Initialize face detector and face recognition model
     detector = dlib.get_frontal_face_detector()

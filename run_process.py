@@ -3,14 +3,15 @@ import sys
 from download_video import download_video
 from video_processor import extract_frames
 from bowler_matcher import match_bowler
-from clip_extractor import extract_clips, merge_clips
+from clip_extractor import extract_clips, merge_clips, get_start_pairs
 from pytubefix import YouTube
 import re
 from upload_to_drive import upload_to_drive
+from pydrive2.auth import GoogleAuth
 
 # Default parameters for clip extraction
 subtract_seconds = 16
-clip_duration = 10
+clip_duration = 11
 skip_frames = 200
 
 
@@ -51,10 +52,14 @@ def process_single_video(youtube_url, reference_image_path, part_num):
     print("\n4. Extracting clips...")
     clips_dir = f"clips_{part_num}"
     
+    
+
+    start_pairs = get_start_pairs(video_path=video_path, frames=matched_frames)
+
     extract_clips(
         video_path,
-        matched_frames,
-        subtract_seconds_from_start=subtract_seconds,
+        start_pairs,
+        subtract_seconds_from_shot=subtract_seconds,
         clip_duration=clip_duration,
         output_folder=clips_dir
     )
@@ -65,7 +70,7 @@ def process_single_video(youtube_url, reference_image_path, part_num):
     
     return part_output
 
-def run_pipeline(youtube_urls, reference_image_path, output_video_path):
+def run_pipeline(youtube_urls, reference_image_path, output_video_path, gauth):
     try:
         part_videos = []
         
@@ -93,7 +98,7 @@ def run_pipeline(youtube_urls, reference_image_path, output_video_path):
         
         print(f"\nPipeline completed successfully! Final output video saved to: {output_video_path}")
 
-        upload_to_drive(output_video_path)
+        upload_to_drive(gauth, output_video_path)
 
 
         
@@ -110,5 +115,9 @@ if __name__ == "__main__":
     output_video_path = sys.argv[2]
     youtube_urls = sys.argv[3:]
     print('# of urls: ', len(youtube_urls), 'urls:', youtube_urls)
+
+    # Authenticate and create the PyDrive client
+    # gauth = GoogleAuth()
+    # gauth.LocalWebserverAuth()  # Opens a browser for authentication
     
-    run_pipeline(youtube_urls, reference_image_path, output_video_path)
+    run_pipeline(youtube_urls, reference_image_path, output_video_path, None)
